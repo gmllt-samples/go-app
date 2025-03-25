@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+
+      - name: Extract tag/version
+        id: extract_tag
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Set vars
+        id: vars
+        run: |
+          echo "APP_NAME=go-app" >> $GITHUB_ENV
+          echo "OS=linux" >> $GITHUB_ENV
+          echo "ARCH=amd64" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "BINARY_ZIP_NAME=go-app-${GITHUB_REF#refs/tags/}-binary-linux-amd64.zip" >> $GITHUB_ENV
+          echo "SOURCE_ZIP_NAME=go-app-${GITHUB_REF#refs/tags/}-sources.zip" >> $GITHUB_ENV
+          echo "BINARY_NAME=go-app-${GITHUB_REF#refs/tags/}-linux-amd64" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: Build Go binary
+        run: |
+          GOOS=${{ env.OS }} GOARCH=${{ env.ARCH }} go build -o "${{ env.BINARY_NAME }}" ./cmd/server
+
+      - name: Zip binary
+        run: |
+          zip "${{ env.BINARY_ZIP_NAME }}" "${{ env.BINARY_NAME }}"
+
+      - name: Create source zip
+        run: |
+          zip -r "${{ env.SOURCE_ZIP_NAME }}" go.mod $(find . -type f -name "*.go" ! -path "./.git/*")
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{ env.BINARY_NAME }}
+            ${{ env.BINARY_ZIP_NAME }}
+            ${{ env.SOURCE_ZIP_NAME }}
+
