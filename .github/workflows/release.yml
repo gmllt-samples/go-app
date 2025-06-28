@@ -39,10 +39,11 @@ jobs:
       - name: Build Go binary
         run: |
           GOOS=${{ env.OS }} GOARCH=${{ env.ARCH }} go build -o "${{ env.BINARY_NAME }}" ./cmd/server
+          echo "web: ./${{ env.BINARY_NAME }}" > Procfile
 
       - name: Zip binary
         run: |
-          zip "${{ env.BINARY_ZIP_NAME }}" "${{ env.BINARY_NAME }}"
+          zip "${{ env.BINARY_ZIP_NAME }}" "${{ env.BINARY_NAME }}" Procfile
 
       - name: Create source zip
         run: |
